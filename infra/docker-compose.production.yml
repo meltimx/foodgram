@@ -2,6 +2,7 @@ volumes:
   postgres_data:
   static:
   media:
+  frontend_build:
 
 services:
   db:
@@ -13,28 +14,29 @@ services:
       - .env
 
   backend:
-    image: ${DOCKER_USERNAME}/foodgram_backend:latest
+    image: meltim/foodgram_backend:latest
     restart: always
     volumes:
-      - static:/app/static
-      - media:/app/media
+      - static:/static
+      - media:/media
     depends_on:
       - db
     env_file:
       - .env
 
   frontend:
-    image: ${DOCKER_USERNAME}/foodgram_frontend:latest
+    image: meltim/foodgram_frontend:latest
     volumes:
-      - static:/app/result_build/build
+      - frontend_build:/result_build
 
   gateway:
-    image: ${DOCKER_USERNAME}/foodgram_gateway:latest
+    image: meltim/foodgram_gateway:latest
     restart: always
     ports:
-      - "80:80"
+      - "8000:80"
     volumes:
-      - static:/usr/share/nginx/html/static/
+      - frontend_build:/usr/share/nginx/html/
+      - static:/var/html/static/
       - media:/var/html/media/
     depends_on:
       - backend

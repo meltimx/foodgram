@@ -2,6 +2,7 @@ volumes:
   postgres_data:
   static:
   media:
+  frontend_build:
 
 services:
   db:
