@@ -42,7 +42,9 @@ class Command(BaseCommand):
         ]
         Ingredient.objects.bulk_create(ingredients, ignore_conflicts=True)
         self.stdout.write(
-            self.style.SUCCESS(f'Импортировано {len(ingredients)} ингредиентов')
+            self.style.SUCCESS(
+                f'Импортировано {len(ingredients)} ингредиентов'
+            )
         )
 
     def _import_from_csv(self, file_path):
@@ -55,5 +57,7 @@ class Command(BaseCommand):
             ]
         Ingredient.objects.bulk_create(ingredients, ignore_conflicts=True)
         self.stdout.write(
-            self.style.SUCCESS(f'Импортировано {len(ingredients)} ингредиентов')
+            self.style.SUCCESS(
+                f'Импортировано {len(ingredients)} ингредиентов'
+            )
         )

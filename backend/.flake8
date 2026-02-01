@@ -3,5 +3,6 @@ exclude =
     venv,
     */migrations/*,
     __pycache__,
-    .env
-max-line-length = 119
+    .env,
+    foodgram/settings.py
+max-line-length = 79

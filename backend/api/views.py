@@ -17,7 +17,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import (
+    IsAuthenticated,
+    IsAuthenticatedOrReadOnly,
+)
 from rest_framework.response import Response
 
 from recipes.models import (
@@ -257,8 +260,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         pdf = canvas.Canvas(buffer, pagesize=A4)
         width, height = A4
 
-        font_path = Path(__file__).parent / 'fonts' / 'DejaVuSans.ttf'
-        font_path_bold = Path(__file__).parent / 'fonts' / 'DejaVuSans-Bold.ttf'
+        fonts_dir = Path(__file__).parent / 'fonts'
+        font_path = fonts_dir / 'DejaVuSans.ttf'
+        font_path_bold = fonts_dir / 'DejaVuSans-Bold.ttf'
         pdfmetrics.registerFont(TTFont('DejaVuSans', str(font_path)))
         pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', str(font_path_bold)))
 
@@ -274,7 +278,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         pdf.setFont('DejaVuSans', 10)
         date_str = datetime.now().strftime('%d.%m.%Y')
         pdf.drawString(50, height - 110, f'Дата: {date_str}')
-        pdf.drawString(50, height - 125, f'Пользователь: {request.user.username}')
+        username = request.user.username
+        pdf.drawString(50, height - 125, f'Пользователь: {username}')
 
         # Разделительная линия
         pdf.setStrokeColor(colors.HexColor('#E0E0E0'))
@@ -290,7 +295,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
             # Чередующийся фон строк
             if i % 2 == 0:
                 pdf.setFillColor(colors.HexColor('#F5F5F5'))
-                pdf.rect(50, y - 5, width - 100, row_height, fill=True, stroke=False)
+                pdf.rect(
+                    50, y - 5, width - 100, row_height, fill=True, stroke=False
+                )
 
             # Номер
             pdf.setFillColor(colors.HexColor('#4A90D9'))
@@ -303,7 +310,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
             pdf.drawString(90, y + 5, item['ingredient__name'].capitalize())
 
             # Количество (справа)
-            amount_text = f"{item['total_amount']} {item['ingredient__measurement_unit']}"
+            unit = item['ingredient__measurement_unit']
+            amount_text = f"{item['total_amount']} {unit}"
             pdf.setFont('DejaVuSans-Bold', 12)
             pdf.drawRightString(width - 60, y + 5, amount_text)
 
@@ -314,7 +322,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 # Футер на текущей странице
                 pdf.setFillColor(colors.HexColor('#999999'))
                 pdf.setFont('DejaVuSans', 9)
-                pdf.drawCentredString(width / 2, 30, 'Foodgram — Продуктовый помощник')
+                footer = 'Foodgram — Продуктовый помощник'
+                pdf.drawCentredString(width / 2, 30, footer)
                 pdf.showPage()
                 y = height - 50
                 pdf.setFont('DejaVuSans', 12)

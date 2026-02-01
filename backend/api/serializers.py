@@ -3,7 +3,9 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from djoser.serializers import UserSerializer as DjoserUserSerializer
-from djoser.serializers import UserCreateSerializer as DjoserUserCreateSerializer
+from djoser.serializers import (
+    UserCreateSerializer as DjoserUserCreateSerializer,
+)
 from rest_framework import serializers
 
 from recipes.models import (
