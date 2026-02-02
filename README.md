@@ -1,5 +1,6 @@
 # Foodgram - продуктовый помощник
 [![Foodgram CI/CD](https://github.com/meltimx/foodgram/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/meltimx/foodgram/actions/workflows/main.yml)
+
 Веб-приложение для публикации и обмена рецептами. Пользователи могут создавать рецепты, добавлять их в избранное, подписываться на авторов и формировать список покупок с возможностью скачивания в PDF.
 
 ## Развёрнутый проект
