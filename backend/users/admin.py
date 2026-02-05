@@ -16,6 +16,8 @@ class UserAdmin(BaseUserAdmin):
         'email',
         'first_name',
         'last_name',
+        'recipes_count',
+        'subscribers_count',
         'is_staff',
     )
     list_filter = ('is_staff', 'is_superuser', 'is_active')
@@ -25,6 +27,14 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = BaseUserAdmin.fieldsets + (
         ('Дополнительно', {'fields': ('avatar',)}),
     )
+
+    @admin.display(description='Рецепты')
+    def recipes_count(self, obj):
+        return obj.recipes.count()
+
+    @admin.display(description='Подписчики')
+    def subscribers_count(self, obj):
+        return obj.subscribers.count()
 
 
 @admin.register(Subscription)

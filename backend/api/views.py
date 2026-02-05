@@ -5,7 +5,7 @@ from io import BytesIO
 from pathlib import Path
 
 from django.contrib.auth import get_user_model
-from django.db.models import Sum
+from django.db.models import Count, Sum
 from django.http import FileResponse
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -44,6 +44,9 @@ from .serializers import (
     ShortLinkSerializer,
     UserSerializer,
     UserWithRecipesSerializer,
+    SubscriptionSerializer,
+    FavoriteSerializer,
+    ShoppingCartSerializer,
     AvatarSerializer,
 )
 
@@ -69,22 +72,23 @@ class UserViewSet(DjoserUserViewSet):
 
     @action(
         detail=False,
-        methods=['put', 'delete'],
+        methods=['put'],
         permission_classes=[IsAuthenticated],
         url_path='me/avatar',
     )
     def avatar(self, request):
-        """Управление аватаром."""
-        if request.method == 'PUT':
-            serializer = AvatarSerializer(
-                request.user,
-                data=request.data,
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data)
+        """Обновление аватара."""
+        serializer = AvatarSerializer(
+            request.user,
+            data=request.data,
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
-        # DELETE
+    @avatar.mapping.delete
+    def delete_avatar(self, request):
+        """Удаление аватара."""
         request.user.avatar.delete(save=True)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -97,7 +101,7 @@ class UserViewSet(DjoserUserViewSet):
         """Получение списка подписок."""
         subscriptions = User.objects.filter(
             subscribers__user=request.user
-        )
+        ).annotate(recipes_count=Count('recipes'))
         page = self.paginate_queryset(subscriptions)
         serializer = UserWithRecipesSerializer(
             page,
@@ -116,37 +120,31 @@ class UserViewSet(DjoserUserViewSet):
         author = get_object_or_404(User, id=id)
 
         if request.method == 'POST':
-            if author == request.user:
-                return Response(
-                    {'errors': 'Нельзя подписаться на себя'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            subscription, created = Subscription.objects.get_or_create(
-                user=request.user,
-                author=author,
-            )
-            if not created:
-                return Response(
-                    {'errors': 'Вы уже подписаны'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            serializer = UserWithRecipesSerializer(
-                author,
+            serializer = SubscriptionSerializer(
+                data={'author': author.id},
                 context={'request': request},
             )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            author = User.objects.annotate(
+                recipes_count=Count('recipes')
+            ).get(id=id)
+            return Response(
+                UserWithRecipesSerializer(
+                    author, context={'request': request}
+                ).data,
+                status=status.HTTP_201_CREATED,
+            )
 
         # DELETE
         deleted, _ = Subscription.objects.filter(
             user=request.user,
             author=author,
         ).delete()
-        if not deleted:
-            return Response(
-                {'errors': 'Вы не были подписаны'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            None if deleted else {'errors': 'Вы не были подписаны'},
+            status=status.HTTP_204_NO_CONTENT if deleted else status.HTTP_400_BAD_REQUEST,
+        )
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -189,19 +187,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer = ShortLinkSerializer(recipe, context={'request': request})
         return Response(serializer.data)
 
-    def _add_to(self, model, request, pk):
+    def _add_to(self, serializer_class, request, pk):
         """Добавление рецепта в модель (избранное/корзина)."""
-        recipe = get_object_or_404(Recipe, pk=pk)
-        obj, created = model.objects.get_or_create(
-            user=request.user,
-            recipe=recipe,
+        serializer = serializer_class(
+            data={'recipe': pk},
+            context={'request': request},
         )
-        if not created:
-            return Response(
-                {'errors': 'Рецепт уже добавлен'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        serializer = RecipeMinifiedSerializer(recipe)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def _remove_from(self, model, request, pk):
@@ -226,7 +219,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def favorite(self, request, pk=None):
         """Добавление/удаление из избранного."""
         if request.method == 'POST':
-            return self._add_to(Favorite, request, pk)
+            return self._add_to(FavoriteSerializer, request, pk)
         return self._remove_from(Favorite, request, pk)
 
     @action(
@@ -238,7 +231,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def shopping_cart(self, request, pk=None):
         """Добавление/удаление из корзины."""
         if request.method == 'POST':
-            return self._add_to(ShoppingCart, request, pk)
+            return self._add_to(ShoppingCartSerializer, request, pk)
         return self._remove_from(ShoppingCart, request, pk)
 
     @action(
@@ -250,7 +243,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def download_shopping_cart(self, request):
         """Скачивание списка покупок в PDF."""
         ingredients = RecipeIngredient.objects.filter(
-            recipe__in_shopping_cart__user=request.user
+            recipe__in_shoppingcarts__user=request.user
         ).values(
             'ingredient__name',
             'ingredient__measurement_unit',

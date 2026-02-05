@@ -26,3 +26,6 @@ MAX_INGREDIENT_AMOUNT = 32000
 
 # Короткие ссылки
 SHORT_LINK_LENGTH = 6
+
+# Пагинация
+DEFAULT_PAGE_SIZE = 6

@@ -41,7 +41,6 @@ class User(AbstractUser):
         'Аватар',
         upload_to='users/avatars/',
         blank=True,
-        null=True,
     )
 
     USERNAME_FIELD = 'email'
@@ -50,7 +49,7 @@ class User(AbstractUser):
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
-        ordering = ['id']
+        ordering = ['email']
 
     def __str__(self):
         return self.username
