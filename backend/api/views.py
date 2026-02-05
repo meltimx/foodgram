@@ -40,7 +40,6 @@ from .serializers import (
     IngredientSerializer,
     RecipeReadSerializer,
     RecipeWriteSerializer,
-    RecipeMinifiedSerializer,
     ShortLinkSerializer,
     UserSerializer,
     UserWithRecipesSerializer,
@@ -143,7 +142,8 @@ class UserViewSet(DjoserUserViewSet):
         ).delete()
         return Response(
             None if deleted else {'errors': 'Вы не были подписаны'},
-            status=status.HTTP_204_NO_CONTENT if deleted else status.HTTP_400_BAD_REQUEST,
+            status=(status.HTTP_204_NO_CONTENT if deleted
+                    else status.HTTP_400_BAD_REQUEST),
         )
 
 
